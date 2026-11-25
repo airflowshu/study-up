@@ -1,0 +1,98 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# ---- 自托管后端 ----
+# 密钥只在本机，永不入库
+.env
+.env.*
+!.env.example
+
+# 依赖与构建产物
+server/node_modules/
+server/dist/
+server/public/
+server/.dev-data/
+server/data/
+
+# Cloudflare 隧道凭据
+cloudflared/*.json
+cloudflared/cert.pem
+
+# 备份
+backup/
+ops/backup/
+
+# ---- 本地数据快照（含真实家庭与孩子数据，永不入库）----
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+*.dump
+.dev-data/
+
+# ---- 临时调试脚本（下划线开头的本地脚本，非项目代码）----
+_*.py
+_*.sh
+
+# ---- 各端依赖与构建产物 ----
+node_modules/
+dist/
+outputs/
+*.iml
+*.jks
+*.keystore
+key.properties
+
+# ---- 根目录验收截图（含真实家庭码与孩子姓名，不入库）----
+/*.png
+/*.jpg
+jar.txt
+
+# ---- 本地工作区记忆与工具状态（含主机凭据，切勿公开）----
+.workbuddy/
+.idea/
+.vscode/
+.dart_tool/

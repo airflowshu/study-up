@@ -1,0 +1,27 @@
+# 构建上下文是仓库根，排除掉与本镜像无关、且体积大的东西
+node_modules
+**/node_modules
+parent-web/node_modules
+parent-web/dist
+server/dist
+server/public
+server/.dev-data
+server/data
+server/.env
+build
+.dart_tool
+android
+ios
+windows
+linux
+macos
+web
+tool
+docs
+cloudbase
+ops
+*.png
+*.apk
+*.db
+.git
+.env

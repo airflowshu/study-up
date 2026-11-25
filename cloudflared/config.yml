@@ -1,0 +1,28 @@
+# Cloudflare Tunnel 配置
+#
+# 这个目录会被只读挂进 cloudflared 容器。两件事要先做：
+#
+#   1. 在 Cloudflare Zero Trust 面板建一条命名隧道，拿到 TUNNEL_ID；
+#   2. 把下载的凭据 JSON 放到本目录，文件名用 <TUNNEL_ID>.json。
+#
+# 然后把下面两处 <TUNNEL_ID> 和 hostname 改成自己的。
+# hostname 必须和 .env 里的 APP_HOST 完全一致，否则回调地址对不上。
+
+tunnel: <TUNNEL_ID>
+credentials-file: /etc/cloudflared/<TUNNEL_ID>.json
+
+# 不用自动更新：镜像版本由 compose 里的 tag 控制，混着自动更新会让排障变难
+no-autoupdate: true
+
+ingress:
+  - hostname: homework.example.com
+    service: http://api:8787
+    originRequest:
+      connectTimeout: 10s
+      # 回源是容器内网明文，Cloudflare 边缘已终止 TLS，这里不需要证书校验
+      noTLSVerify: true
+      # 让后端看到的 Host 是公网域名，PUBLIC_ORIGIN 兜底时能拼出正确链接
+      httpHostHeader: homework.example.com
+
+  # 兜底：没匹配上的请求直接 404，不要漏到别处
+  - service: http_status:404

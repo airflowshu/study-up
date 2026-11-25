@@ -1,0 +1,56 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+android {
+    namespace = "com.shuge.homework_app"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    kotlinOptions {
+        jvmTarget = "11"
+    }
+
+    defaultConfig {
+        applicationId = "com.shuge.homework_app"
+        // Android 8.0 起支持（需求文档 minSdk 26）
+        minSdk = 26
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
+
+    // 让 .so 在 APK 里用 deflate 压缩，而不是原样存储。
+    //
+    // AGP 8 默认 extractNativeLibs=false：libflutter.so / libapp.so 直接以未压缩
+    // 形式躺在包里（arm64 那套就是 10.3 MB + 6.6 MB），安装快但包大得离谱。
+    // 打开后引擎压到约 4.8 MB、业务代码约 2.7 MB，整个包从 18 MB 降到 8.7 MB。
+    // 代价是安装时要解压到 /data/app：安装略慢、磁盘多占 ~17 MB，Android 6+ 都支持，
+    // 已在 Android 8.0 的平板上实测通过。
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
+    buildTypes {
+        release {
+            // TODO: Add your own signing config for the release build.
+            // Signing with the debug keys for now, so `flutter run --release` works.
+            signingConfig = signingConfigs.debug
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}

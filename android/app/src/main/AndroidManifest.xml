@@ -1,0 +1,62 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 数据与图片同步（离线时降级为本地缓存） -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- 监听网络恢复：断网时写的数据，网一回来自动补传 -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <!-- 拍照录入作业，用户拒绝时降级为仅相册，故不设 required -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+
+    <application
+        android:label="家庭作业"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher"
+        android:resizeableActivity="true"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules">
+        <!-- 关掉自动备份：卸载重装时系统会把 databases/homework.db 原样恢复，
+             恢复回来的库可能停在任意中间版本，迁移一不兼容就再也打不开。
+             光设 allowBackup="false" 不够 —— Android 12+ 的「换机迁移」(D2D)
+             不受它控制，还得靠 data_extraction_rules 一并排除。
+             代价：卸载/换机后本地数据不跟随，靠云端同步重新拉。 -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            <!-- 不锁定 screenOrientation：平板需支持横屏、分屏与小窗 -->
+            <meta-data
+              android:name="io.flutter.embedding.android.NormalTheme"
+              android:resource="@style/NormalTheme"
+              />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+    </application>
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.PROCESS_TEXT"/>
+            <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Android 11+ 的包可见性限制：不声明的话 url_launcher
+             连「有没有浏览器能打开这个链接」都判断不了，更新按钮会静默失效 -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="http"/>
+        </intent>
+    </queries>
+</manifest>

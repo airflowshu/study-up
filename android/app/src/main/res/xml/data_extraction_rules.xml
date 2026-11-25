@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  彻底关掉数据迁移。
+
+  `android:allowBackup="false"` 只能挡住云备份，管不住 Android 12+ 的
+  「设备间迁移」(device-to-device)。用户换机或重装时，系统仍可能把
+  databases/ 整个搬过去，搬来一个版本号停在旧值、表结构却是中间状态的库。
+
+  所以这里两个 domain 都显式排除，一个字段都不留。
+  数据库和偏好都不跟机器走，换设备一律靠云端同步重建。
+
+  注意：这个文件只在 API 31+ 生效；API 26–30 由 manifest 里的
+  android:fullBackupContent="false" 兜底。
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </device-transfer>
+</data-extraction-rules>

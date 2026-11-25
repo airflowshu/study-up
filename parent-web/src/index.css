@@ -1,0 +1,219 @@
+@import 'tailwindcss';
+
+/* 主题开关：.dark 挂到 <html> 上 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --c-bg: #f5f7fa;
+  --c-bg-soft: #eef1f6;
+  --c-surface: #ffffff;
+  --c-surface-2: #f8fafc;
+  --c-surface-3: #f1f5f9;
+  --c-border: #e4e8ef;
+  --c-border-strong: #d3d9e3;
+  --c-fg: #0f172a;
+  --c-fg-muted: #5b6779;
+  --c-fg-subtle: #93a0b1;
+  --c-primary: #2563eb;
+  --c-primary-hover: #1d4ed8;
+  --c-primary-fg: #ffffff;
+  --c-primary-soft: #eaf1ff;
+  --c-primary-soft-fg: #1d4ed8;
+  --c-success: #10b981;
+  --c-success-soft: #e7f8f1;
+  --c-success-fg: #0e9f6e;
+  --c-warning: #f59e0b;
+  --c-warning-soft: #fef3e2;
+  --c-warning-fg: #b26a05;
+  --c-danger: #ef4444;
+  --c-danger-soft: #fdecec;
+  --c-danger-fg: #dc2626;
+  --c-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px -12px rgb(15 23 42 / 0.12);
+  --c-ring: rgb(37 99 235 / 0.35);
+}
+
+.dark {
+  --c-bg: #0a0e15;
+  --c-bg-soft: #0e1420;
+  --c-surface: #121926;
+  --c-surface-2: #171f2e;
+  --c-surface-3: #1d2635;
+  --c-border: #232e40;
+  --c-border-strong: #34415a;
+  --c-fg: #e9eef7;
+  --c-fg-muted: #95a2b6;
+  --c-fg-subtle: #6b7a8f;
+  --c-primary: #3b82f6;
+  --c-primary-hover: #60a5fa;
+  --c-primary-fg: #ffffff;
+  --c-primary-soft: rgb(59 130 246 / 0.16);
+  --c-primary-soft-fg: #93b8ff;
+  --c-success: #34d399;
+  --c-success-soft: rgb(16 185 129 / 0.16);
+  --c-success-fg: #6ee7b7;
+  --c-warning: #fbbf24;
+  --c-warning-soft: rgb(245 158 11 / 0.16);
+  --c-warning-fg: #fcd34d;
+  --c-danger: #f87171;
+  --c-danger-soft: rgb(239 68 68 / 0.16);
+  --c-danger-fg: #fca5a5;
+  --c-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -16px rgb(0 0 0 / 0.7);
+  --c-ring: rgb(59 130 246 / 0.45);
+}
+
+@theme inline {
+  --color-bg: var(--c-bg);
+  --color-bg-soft: var(--c-bg-soft);
+  --color-surface: var(--c-surface);
+  --color-surface-2: var(--c-surface-2);
+  --color-surface-3: var(--c-surface-3);
+  --color-line: var(--c-border);
+  --color-line-strong: var(--c-border-strong);
+  --color-fg: var(--c-fg);
+  --color-muted: var(--c-fg-muted);
+  --color-subtle: var(--c-fg-subtle);
+  --color-primary: var(--c-primary);
+  --color-primary-hover: var(--c-primary-hover);
+  --color-primary-fg: var(--c-primary-fg);
+  --color-primary-soft: var(--c-primary-soft);
+  --color-primary-soft-fg: var(--c-primary-soft-fg);
+  --color-success: var(--c-success);
+  --color-success-soft: var(--c-success-soft);
+  --color-success-fg: var(--c-success-fg);
+  --color-warning: var(--c-warning);
+  --color-warning-soft: var(--c-warning-soft);
+  --color-warning-fg: var(--c-warning-fg);
+  --color-danger: var(--c-danger);
+  --color-danger-soft: var(--c-danger-soft);
+  --color-danger-fg: var(--c-danger-fg);
+
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+
+  --radius-card: 14px;
+  --radius-ctl: 10px;
+}
+
+@layer base {
+  * {
+    border-color: var(--c-border);
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    background-color: var(--c-bg);
+    color: var(--c-fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: rgb(37 99 235 / 0.2);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 2px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--c-border-strong);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--c-fg-subtle);
+    background-clip: content-box;
+  }
+
+  textarea,
+  input {
+    font-family: inherit;
+  }
+}
+
+@utility card-shadow {
+  box-shadow: var(--c-shadow);
+}
+
+/* 进入动画：列表项、面板 */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 右侧抽屉：从视口右缘推进来 */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility animate-fade-up {
+  animation: fade-up 0.24s ease-out both;
+}
+
+@utility animate-fade-in {
+  animation: fade-in 0.2s ease-out both;
+}
+
+@utility animate-pop-in {
+  animation: pop-in 0.18s ease-out both;
+}
+
+@utility animate-slide-in-right {
+  animation: slide-in-right 0.24s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+
+/* 正在上传的图片骨架条 */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}

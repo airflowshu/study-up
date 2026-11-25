@@ -1,0 +1,38 @@
+name: homework_app
+description: "家庭作业 - 家长布置，孩子查看"
+publish_to: 'none'
+version: 1.2.1+13
+
+environment:
+  sdk: ^3.6.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  sqflite: ^2.3.3+1
+  path: ^1.9.0
+  path_provider: ^2.1.4
+  intl: ^0.19.0
+  table_calendar: ^3.1.2
+  image_picker: ^1.1.2
+  shared_preferences: ^2.3.2
+  uuid: ^4.5.1
+  http: ^1.2.2
+  # 网络状态监听：断网时写的数据，网一回来立刻补传，不用等用户下次操作
+  connectivity_plus: ^6.0.5
+  # 读取本机安装的版本号，用于和云端版本清单比对
+  package_info_plus: ^8.0.2
+  # 打开 APK 下载地址
+  url_launcher: ^6.3.0
+  file_picker: ^11.0.3
+  open_filex: ^5.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

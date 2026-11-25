@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>作业 App · 移动端 UI 优化方案 v1</title>
+<style>
+:root{
+  /* ---------- 新设计令牌 ---------- */
+  --bg:#F4F6FB;
+  --surface:#FFFFFF;
+  --surface-2:#F7F8FC;
+  --surface-3:#EEF1F8;
+  --border:#E6E9F2;
+  --border-strong:#D6DBE8;
+  --ink-1:#171A22;
+  --ink-2:#5B6273;
+  --ink-3:#767C8C;
+  --ink-4:#A6ACBB;
+  --primary:#5B6BF5;
+  --primary-ink:#4453D8;
+  --primary-soft:#EDF1FF;
+  --success:#10B981;
+  --success-ink:#0E9F6E;
+  --success-soft:#E7F8F1;
+  --warning:#F59E0B;
+  --warning-ink:#B26A05;
+  --warning-soft:#FEF3E2;
+  --danger:#EF4444;
+  --danger-ink:#DC2626;
+  --danger-soft:#FDECEC;
+  --r-xs:6px; --r-sm:10px; --r-md:14px; --r-lg:20px; --r-full:999px;
+  --s1:0 1px 2px rgba(23,26,34,.05);
+  --s2:0 4px 12px rgba(23,26,34,.08);
+  --s3:0 10px 28px rgba(23,26,34,.14);
+  --font:"PingFang SC","HarmonyOS Sans SC","Microsoft YaHei","Noto Sans SC",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:#EEF1F6;color:var(--ink-1);-webkit-font-smoothing:antialiased}
+.page{max-width:1330px;margin:0 auto;padding:36px 24px 80px}
+
+/* ---------- 文档头部 ---------- */
+.doc-head{background:linear-gradient(120deg,#4453D8,#5B6BF5 55%,#7B88F8);color:#fff;border-radius:var(--r-lg);padding:30px 34px;box-shadow:var(--s2)}
+.doc-head h1{font-size:26px;font-weight:700;letter-spacing:.2px}
+.doc-head p{margin-top:10px;font-size:14px;line-height:1.7;opacity:.92;max-width:900px}
+.doc-head .tags{margin-top:16px;display:flex;gap:8px;flex-wrap:wrap}
+.doc-head .tags span{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.28);padding:5px 12px;border-radius:var(--r-full);font-size:12px}
+
+h2.sec{font-size:19px;font-weight:700;margin:40px 0 6px;display:flex;align-items:center;gap:10px}
+h2.sec::before{content:"";width:4px;height:18px;background:var(--primary);border-radius:2px}
+.sec-desc{font-size:13px;color:var(--ink-2);margin-bottom:16px;line-height:1.7}
+
+/* ---------- 诊断表 ---------- */
+table.diag{width:100%;border-collapse:collapse;background:#fff;border-radius:var(--r-md);overflow:hidden;box-shadow:var(--s1);font-size:13px}
+table.diag th{background:var(--surface-2);text-align:left;padding:11px 14px;font-weight:600;color:var(--ink-2);border-bottom:1px solid var(--border)}
+table.diag td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.6}
+table.diag tr:last-child td{border-bottom:none}
+table.diag td.lv{white-space:nowrap}
+.pill{display:inline-block;padding:2px 9px;border-radius:var(--r-full);font-size:11px;font-weight:600}
+.pill.high{background:var(--danger-soft);color:var(--danger-ink)}
+.pill.mid{background:var(--warning-soft);color:var(--warning-ink)}
+.pill.low{background:var(--primary-soft);color:var(--primary-ink)}
+
+/* ---------- 令牌区 ---------- */
+.tok-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.tok{background:#fff;border:1px solid var(--border);border-radius:var(--r-md);padding:16px 18px;box-shadow:var(--s1)}
+.tok h4{font-size:13px;color:var(--ink-2);font-weight:600;margin-bottom:12px}
+.sw-row{display:flex;gap:8px;flex-wrap:wrap}
+.sw{flex:1;min-width:76px}
+.sw .box{height:44px;border-radius:var(--r-sm);border:1px solid rgba(0,0,0,.06)}
+.sw .nm{font-size:10.5px;color:var(--ink-3);margin-top:5px;line-height:1.4}
+.sw .nm b{display:block;color:var(--ink-1);font-size:11.5px}
+.type-row{display:flex;align-items:baseline;gap:10px;padding:5px 0;border-bottom:1px dashed var(--border)}
+.type-row:last-child{border:none}
+.type-row .px{width:38px;font-size:11px;color:var(--ink-4);font-variant-numeric:tabular-nums}
+.type-row .sm{font-size:11px;color:var(--ink-4);margin-left:auto}
+.radii{display:flex;gap:10px;align-items:flex-end}
+.radii div{text-align:center;font-size:10.5px;color:var(--ink-3)}
+.radii .r{width:52px;height:52px;background:var(--primary-soft);border:1.5px solid var(--primary);margin-bottom:5px}
+.sh-row{display:flex;gap:12px;flex-wrap:wrap}
+.sh{width:104px;height:56px;background:#fff;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ink-3)}
+
+/* ---------- 手机 ---------- */
+.shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(390px,1fr));gap:26px}
+.shot{display:flex;flex-direction:column;align-items:center}
+.shot .cap{width:390px;margin-bottom:10px}
+.shot .cap b{font-size:14px;font-weight:700}
+.shot .cap .sub{font-size:12px;color:var(--ink-2);margin-top:3px;line-height:1.6}
+.phone{width:390px;height:820px;background:var(--bg);border-radius:42px;border:10px solid #16181F;box-shadow:var(--s3),0 0 0 2px #2A2D38 inset;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.statusbar{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-size:12.5px;font-weight:600;color:var(--ink-1);flex:none}
+.statusbar .rt{display:flex;align-items:center;gap:5px}
+.sig{display:flex;align-items:flex-end;gap:2px}
+.sig i{width:3px;background:var(--ink-1);border-radius:1px;display:block}
+.sig i:nth-child(1){height:4px}.sig i:nth-child(2){height:6px}.sig i:nth-child(3){height:8px}.sig i:nth-child(4){height:10px;opacity:.35}
+.batt{width:22px;height:11px;border:1.4px solid var(--ink-1);border-radius:3px;position:relative;opacity:.85}
+.batt::after{content:"";position:absolute;right:-3px;top:3px;width:2px;height:5px;background:var(--ink-1);border-radius:0 1px 1px 0}
+.batt i{position:absolute;left:1.5px;top:1.5px;bottom:1.5px;width:13px;background:var(--ink-1);border-radius:1.5px}
+.appbar{height:52px;flex:none;display:flex;align-items:center;padding:0 8px;gap:4px;background:var(--bg)}
+.appbar .t{font-size:17px;font-weight:600;color:var(--ink-1);padding-left:8px}
+.appbar .sp{flex:1}
+.iconbtn{width:40px;height:40px;border-radius:var(--r-full);display:flex;align-items:center;justify-content:center;color:var(--ink-2)}
+.iconbtn.badge{color:var(--danger)}
+.ico{width:20px;height:20px;display:block}
+.body{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.scroll{flex:1;overflow:auto;padding:0 16px}
+.navbar{flex:none;height:62px;background:#fff;border-top:1px solid var(--border);display:flex;padding-top:6px}
+.navbar .it{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--ink-3)}
+.navbar .it.on{color:var(--primary)}
+.navbar .it .ind{width:44px;height:30px;border-radius:var(--r-full);display:flex;align-items:center;justify-content:center}
+.navbar .it.on .ind{background:var(--primary-soft)}
+.homebar{flex:none;height:18px;display:flex;align-items:center;justify-content:center}
+.homebar i{width:118px;height:4px;background:#C9CDD8;border-radius:2px;display:block}
+
+/* ---------- 通用组件 ---------- */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--s1)}
+.chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:var(--r-full);background:#fff;border:1px solid var(--border);font-size:13px;color:var(--ink-2);cursor:default}
+.chip.on{background:var(--primary-soft);border-color:#B9C6FB;color:var(--primary-ink);font-weight:600}
+.chip .av{width:20px;height:20px;border-radius:var(--r-full);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff}
+.tag{display:inline-flex;padding:3px 8px;border-radius:var(--r-xs);font-size:12px;font-weight:600}
+.btn{height:50px;border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;gap:7px;font-size:16px;font-weight:600}
+.btn.pri{background:var(--primary);color:#fff;box-shadow:0 4px 12px rgba(76,110,245,.28)}
+.btn.gho{background:#fff;border:1px solid var(--border);color:var(--ink-2)}
+.btn.dgr{color:var(--danger-ink);background:#fff;border:1px solid #F3C7C7}
+.pill-s{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:var(--r-full);font-size:11px;font-weight:500}
+.muted{color:var(--ink-3)}
+.hint{font-size:11px;color:var(--ink-3);line-height:1.6}
+
+/* 作业卡片 */
+.hw{position:relative;background:#fff;border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--s1);overflow:hidden}
+.hw .bar{position:absolute;left:0;top:0;bottom:0;width:3px}
+.hw .in{padding:12px 12px 12px 15px}
+.hw .r1{display:flex;align-items:center;gap:8px}
+.hw .tx{margin-top:7px;font-size:14px;line-height:1.55;color:var(--ink-1)}
+.hw.done .tx{color:var(--ink-3);text-decoration:line-through;text-decoration-color:#C3C8D4}
+.hw.done .bar{opacity:.5}
+.hw.done{background:#FCFCFE}
+.circle{border-radius:50%;border:1.6px solid var(--border-strong);display:flex;align-items:center;justify-content:center;flex:none}
+.circle.on{background:var(--success);border-color:var(--success)}
+.tapzone{width:48px;height:48px;display:flex;align-items:center;justify-content:flex-end;flex:none;margin:-8px -8px -8px 0}
+.photo{background:repeating-linear-gradient(0deg,#FBFBFD 0 9px,#F1F3F9 9px 10px),#FBFBFD;border-radius:var(--r-sm);border:1px solid var(--border);position:relative;overflow:hidden}
+.photo::after{content:"";position:absolute;inset:12px 10px;background:linear-gradient(160deg,#DDE3F3,#EEF1F8);border-radius:4px}
+.stack{position:relative}
+.stack .p2{position:absolute;left:5px;top:5px;background:#fff;border:1px solid var(--border);border-radius:var(--r-sm);box-shadow:var(--s1)}
+.stack .bd{position:absolute;left:44px;top:56px;background:rgba(23,26,34,.85);color:#fff;font-size:10px;padding:2px 6px;border-radius:var(--r-xs)}
+.progress{height:6px;border-radius:var(--r-full);background:var(--surface-3);overflow:hidden}
+.progress i{display:block;height:100%;border-radius:var(--r-full);background:var(--primary)}
+.ring{position:relative;width:52px;height:52px;flex:none}
+.ring svg{transform:rotate(-90deg)}
+.divider{height:1px;background:var(--border)}
+.sec-t{font-size:13px;font-weight:600;color:var(--ink-2);margin:16px 0 8px;display:flex;align-items:center;gap:6px}
+.sec-t .n{width:18px;height:18px;border-radius:var(--r-xs);background:var(--primary-soft);color:var(--primary-ink);font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.input{background:#fff;border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;font-size:15px;line-height:1.6;color:var(--ink-1)}
+.input.focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(76,110,245,.14)}
+.mark{background:var(--primary-soft);color:var(--primary-ink);border-radius:4px;padding:0 3px;font-weight:600}
+.mark.warn{background:var(--warning-soft);color:var(--warning-ink)}
+.tile-add{border:1.5px dashed var(--border-strong);border-radius:var(--r-sm);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--ink-4);font-size:11px;gap:2px}
+.skeleton{background:linear-gradient(90deg,#EFF1F6 25%,#F7F8FC 37%,#EFF1F6 63%);background-size:400% 100%;animation:sh 1.4s ease infinite;border-radius:var(--r-xs)}
+@keyframes sh{0%{background-position:100% 50%}100%{background-position:0 50%}}
+
+/* 说明卡 */
+.note{width:390px;margin-top:12px;background:#fff;border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;box-shadow:var(--s1)}
+.note h5{font-size:12px;color:var(--primary-ink);font-weight:700;margin-bottom:7px}
+.note ul{list-style:none;font-size:12px;color:var(--ink-2);line-height:1.75}
+.note li{padding-left:14px;position:relative}
+.note li::before{content:"·";position:absolute;left:4px;color:var(--primary);font-weight:700}
+.note li b{color:var(--ink-1)}
+
+/* 对比 */
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:860px}
+.cmp .box{background:#fff;border:1px solid var(--border);border-radius:var(--r-md);padding:16px;box-shadow:var(--s1)}
+.cmp .box h5{font-size:12px;font-weight:700;margin-bottom:12px}
+.cmp .box.bad h5{color:var(--danger-ink)}
+.cmp .box.good h5{color:var(--success-ink)}
+.footnote{margin-top:34px;background:#fff;border:1px solid var(--border);border-radius:var(--r-md);padding:18px 20px;box-shadow:var(--s1)}
+.footnote h4{font-size:14px;margin-bottom:10px}
+.footnote ol{font-size:13px;color:var(--ink-2);line-height:1.9;padding-left:20px}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="doc-head">
+    <h1>作业 App · 移动端 UI 优化方案 v1</h1>
+    <p>目标用户两端分裂：家长端要「3 秒确认今天布置了什么、还差哪几科」，孩子端要「1 秒知道还剩几科、一指头点掉一个勾」。当前实现功能完整但视觉层级偏平、令牌不成体系、孩子端触摸区偏小。本方案不动信息架构，只做<strong>视觉体系重构 + 关键交互增强</strong>。</p>
+    <div class="tags">
+      <span>10 屏效果图</span><span>令牌体系</span><span>无障碍对比度修正</span><span>孩子端触摸区 48dp</span><span>组件状态齐全</span>
+    </div>
+  </div>
+
+  <h2 class="sec">一、现状诊断</h2>
+  <div class="sec-desc">按「看得到的问题 → 对用户的实际影响」排序。高 = 影响日常使用，建议本次改；中 = 影响质感，可随本次一起改；低 = 长期一致性。</div>
+  <table class="diag">
+    <tr><th style="width:22%">问题</th><th style="width:40%">现状</th><th style="width:26%">影响</th><th class="lv">级别</th></tr>
+    <tr>
+      <td>已完成卡片可读性</td>
+      <td>整卡 <code>Opacity(0.62)</code>，正文 #9CA3AF + 删除线</td>
+      <td>对比度掉到约 2.6:1，远低于 WCAG 4.5:1；长辈/户外几乎看不清「已完成什么」</td>
+      <td class="lv"><span class="pill high">高</span></td>
+    </tr>
+    <tr>
+      <td>孩子端打勾区太小</td>
+      <td>视觉圆 26dp，触摸盒 <code>size+24</code> 宽 × 26 高</td>
+      <td>高只有 26dp，低于 44dp 无障碍下限；8 岁孩子手指点偏就直接跳进详情页</td>
+      <td class="lv"><span class="pill high">高</span></td>
+    </tr>
+    <tr>
+      <td>圆角无体系</td>
+      <td>同时存在 6 / 8 / 10 / 12 / 14 / 16 / 20 共 7 档</td>
+      <td>同类控件（胶囊 vs 卡片 vs 输入框）边界模糊，界面显得杂</td>
+      <td class="lv"><span class="pill mid">中</span></td>
+    </tr>
+    <tr>
+      <td>灰阶散落</td>
+      <td>#6B7280 #9CA3AF #CBD0DA #D5D8E0 #D8DBE4 #E1E4EC #E6E8EF #F2F3F7 #EDEFF5 #EDF1FF #F7F9FF —— 11 种硬编码灰，多数没走 AppColors</td>
+      <td>改主题要全局搜索替换；不同页面「次级底」深浅不一</td>
+      <td class="lv"><span class="pill mid">中</span></td>
+    </tr>
+    <tr>
+      <td>字号梯度过密</td>
+      <td>11 / 12 / 13 / 14 / 15 / 16 / 17 / 20 / 22 共 9 档，12 与 13、14 与 15 大量混用</td>
+      <td>相邻档位肉眼无差别，层级靠猜</td>
+      <td class="lv"><span class="pill mid">中</span></td>
+    </tr>
+    <tr>
+      <td>页面「平」</td>
+      <td>白卡 + 1px 描边 + 0 阴影，卡片之间只有 10dp 空隙</td>
+      <td>列表一屏 5 条时找不到重点，扫读慢</td>
+      <td class="lv"><span class="pill mid">中</span></td>
+    </tr>
+    <tr>
+      <td>家长首页进度不可见</td>
+      <td>「已布置 5 科 · 已完成 2 科」纯 12px 灰字，塞在头部第二行</td>
+      <td>最该一眼看到的信息，权重最低</td>
+      <td class="lv"><span class="pill mid">中</span></td>
+    </tr>
+    <tr>
+      <td>编辑页分区弱</td>
+      <td>四组字段靠 18dp 间距分隔，无容器</td>
+      <td>长表单下滑后不知道当前填的是哪一段</td>
+      <td class="lv"><span class="pill mid">中</span></td>
+    </tr>
+    <tr>
+      <td>主色与学科色语义打架</td>
+      <td>时长/统计用主色蓝 #5B6BF5，语文也是蓝 #2F7FF3</td>
+      <td>蓝色条既代表「语文」又代表「计时」，需要二次辨认</td>
+      <td class="lv"><span class="pill low">低</span></td>
+    </tr>
+    <tr>
+      <td>加载态/空态偏弱</td>
+      <td>裸转圈；空态 44dp 灰图标 + 两行灰字</td>
+      <td>首屏等待时观感像「卡住」</td>
+      <td class="lv"><span class="pill low">低</span></td>
+    </tr>
+    <tr>
+      <td>「编辑」按钮层级错</td>
+      <td>12px 文字按钮，与整卡点击（进详情）并列，视觉权重低于卡片</td>
+      <td>高频操作做成弱入口，容易被当成不可点</td>
+      <td class="lv"><span class="pill low">低</span></td>
+    </tr>
+  </table>
+
+  <h2 class="sec">二、设计令牌（统一后的数值）</h2>
+  <div class="sec-desc">全部落在 <code>AppColors</code> / <code>AppTheme</code> 里，页面里不再出现硬编码颜色与随手写的圆角。</div>
+  <div class="tok-grid">
+    <div class="tok">
+      <h4>中性 &amp; 文字（5 级灰，替换现有 11 种）</h4>
+      <div class="sw-row">
+        <div class="sw"><div class="box" style="background:#171A22"></div><div class="nm"><b>ink-1</b>#171A22</div></div>
+        <div class="sw"><div class="box" style="background:#5B6273"></div><div class="nm"><b>ink-2</b>#5B6273</div></div>
+        <div class="sw"><div class="box" style="background:#767C8C"></div><div class="nm"><b>ink-3</b>#767C8C</div></div>
+        <div class="sw"><div class="box" style="background:#A6ACBB"></div><div class="nm"><b>ink-4</b>#A6ACBB</div></div>
+        <div class="sw"><div class="box" style="background:#E6E9F2"></div><div class="nm"><b>border</b>#E6E9F2</div></div>
+      </div>
+      <div class="hint" style="margin-top:10px">ink-3 由 #9CA3AF 提到 #767C8C：11–13px 说明文字对比度 2.6:1 → 4.6:1，达标。</div>
+    </div>
+    <div class="tok">
+      <h4>主色 &amp; 功能色</h4>
+      <div class="sw-row">
+        <div class="sw"><div class="box" style="background:#5B6BF5"></div><div class="nm"><b>primary</b>#5B6BF5</div></div>
+        <div class="sw"><div class="box" style="background:#4453D8"></div><div class="nm"><b>primary-ink</b>文字/图标</div></div>
+        <div class="sw"><div class="box" style="background:#EDF1FF"></div><div class="nm"><b>primary-soft</b>浅底</div></div>
+        <div class="sw"><div class="box" style="background:#10B981"></div><div class="nm"><b>success</b>#10B981</div></div>
+        <div class="sw"><div class="box" style="background:#EF4444"></div><div class="nm"><b>danger</b>#EF4444</div></div>
+        <div class="sw"><div class="box" style="background:#F59E0B"></div><div class="nm"><b>warning</b>#F59E0B</div></div>
+      </div>
+      <div class="hint" style="margin-top:10px">学科 8 色保持不变（跨页面识别锚点）；功能色不再与学科蓝共用语义。</div>
+    </div>
+    <div class="tok">
+      <h4>字号梯度（9 档 → 6 档）</h4>
+      <div class="type-row"><span class="px">11</span><span style="font-size:11px">辅助说明 · 字数 · 徽标</span><span class="sm">caption</span></div>
+      <div class="type-row"><span class="px">13</span><span style="font-size:13px">标签 · 次级信息 · 按钮文字（小）</span><span class="sm">label</span></div>
+      <div class="type-row"><span class="px">15</span><span style="font-size:15px">正文 · 输入框 · 列表标题</span><span class="sm">body</span></div>
+      <div class="type-row"><span class="px">17</span><span style="font-size:17px">页面标题 · 详情正文</span><span class="sm">title</span></div>
+      <div class="type-row"><span class="px">22</span><span style="font-size:22px;font-weight:700">区块大标题（孩子端今日）</span><span class="sm">headline</span></div>
+      <div class="type-row"><span class="px">32</span><span style="font-size:32px;font-weight:700;font-variant-numeric:tabular-nums">统计数字</span><span class="sm">display</span></div>
+    </div>
+    <div class="tok">
+      <h4>圆角（7 档 → 5 档）</h4>
+      <div class="radii">
+        <div><div class="r" style="border-radius:6px"></div>r-xs 6<br>标签/徽标</div>
+        <div><div class="r" style="border-radius:10px"></div>r-sm 10<br>输入框/图块</div>
+        <div><div class="r" style="border-radius:14px"></div>r-md 14<br>卡片/按钮</div>
+        <div><div class="r" style="border-radius:20px"></div>r-lg 20<br>大容器/sheet</div>
+        <div><div class="r" style="border-radius:999px"></div>r-full<br>胶囊/进度</div>
+      </div>
+    </div>
+    <div class="tok">
+      <h4>间距（4 的倍数）</h4>
+      <div class="sw-row" style="align-items:flex-end">
+        <div class="sw"><div class="box" style="height:8px;background:var(--primary)"></div><div class="nm"><b>4</b></div></div>
+        <div class="sw"><div class="box" style="height:14px;background:var(--primary)"></div><div class="nm"><b>8</b></div></div>
+        <div class="sw"><div class="box" style="height:20px;background:var(--primary)"></div><div class="nm"><b>12</b></div></div>
+        <div class="sw"><div class="box" style="height:26px;background:var(--primary)"></div><div class="nm"><b>16</b></div></div>
+        <div class="sw"><div class="box" style="height:32px;background:var(--primary)"></div><div class="nm"><b>24</b></div></div>
+        <div class="sw"><div class="box" style="height:38px;background:var(--primary)"></div><div class="nm"><b>32</b></div></div>
+      </div>
+      <div class="hint" style="margin-top:10px">页面边距统一 16；卡片间距 12；卡内 padding 12/16；分区之间 24。</div>
+    </div>
+    <div class="tok">
+      <h4>阴影（现在全是 0）</h4>
+      <div class="sh-row">
+        <div class="sh" style="box-shadow:0 1px 2px rgba(23,26,34,.05)">s1 卡片</div>
+        <div class="sh" style="box-shadow:0 4px 12px rgba(23,26,34,.08)">s2 按钮/浮起</div>
+        <div class="sh" style="box-shadow:0 10px 28px rgba(23,26,34,.14)">s3 弹层</div>
+      </div>
+      <div class="hint" style="margin-top:10px">描边保留但降到 #E6E9F2，配 s1 阴影 —— 灰底上靠阴影分层，白卡内靠描边分块。</div>
+    </div>
+  </div>
+
+  <h2 class="sec">三、优化版效果图</h2>
+  <div class="sec-desc">全部按 390×844 逻辑像素 1:1 绘制，颜色/字号/间距即为落地数值。每屏下方列出该屏的改动点与理由。</div>
+
+  <div class="shots">
+
+    <!-- ============ 屏 1：家长端首页 ============ -->
+    <div class="shot">
+      <div class="cap"><b>1 · 家长端「布置」首页</b><div class="sub">进度可视化 + 卡片分层 + 单一主 CTA</div></div>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span class="rt"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="batt"><i></i></span></span></div>
+        <div class="appbar"><span class="t">布置作业</span><span class="sp"></span>
+          <span class="iconbtn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#5B6273" stroke-width="1.8"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M20 9a8 8 0 0 0-14.1-3M4 15a8 8 0 0 0 14.1 3"/></svg></span>
+        </div>
+        <div class="body">
+          <div class="scroll" style="padding-top:4px">
+            <!-- 孩子切换 + 日期 -->
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="display:flex;gap:8px;flex:1;overflow:hidden">
+                <span class="chip on"><span class="av" style="background:#5B6BF5">张</span>张小满</span>
+                <span class="chip"><span class="av" style="background:#10B981">T</span>Tony</span>
+              </div>
+              <span class="chip" style="flex:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4453D8" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>今天</span>
+            </div>
+            <!-- 进度卡 -->
+            <div class="card" style="margin-top:12px;padding:14px 16px">
+              <div style="display:flex;align-items:baseline;gap:8px">
+                <span style="font-size:15px;font-weight:600">10月30日 · 周五</span>
+                <span class="sp" style="flex:1"></span>
+                <span style="font-size:13px;color:var(--ink-3)">已完成 <b style="color:var(--primary-ink);font-size:15px">2</b>/5 科</span>
+              </div>
+              <div class="progress" style="margin-top:10px"><i style="width:40%"></i></div>
+            </div>
+            <!-- 时长条 -->
+            <div class="card" style="margin-top:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;background:linear-gradient(120deg,#F7F9FF,#EFF3FF);border-color:#DDE3F7">
+              <span style="width:36px;height:36px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:var(--s1)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4453D8" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+              </span>
+              <div style="flex:1">
+                <div style="font-size:15px;font-weight:700;font-variant-numeric:tabular-nums">46 分钟</div>
+                <div style="font-size:11px;color:var(--ink-3);margin-top:2px">今日累计 · 3 科有记录</div>
+              </div>
+              <span style="font-size:13px;font-weight:600;color:var(--primary-ink)">明细</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4453D8" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+            </div>
+            <!-- 列表 -->
+            <div style="height:12px"></div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <!-- 已完成 -->
+              <div class="hw done">
+                <div class="bar" style="background:#2F7FF3"></div>
+                <div class="in">
+                  <div class="r1">
+                    <span class="tag" style="background:#EBF3FF;color:#2563EB">语文</span>
+                    <span style="display:flex;align-items:center;gap:3px;font-size:11px;color:var(--ink-3)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#767C8C" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>18 分</span>
+                    <span class="sp" style="flex:1"></span>
+                    <span class="pill-s" style="background:var(--success-soft);color:var(--success-ink)"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2l-3.5-3.5L4 14.2l5 5 11-11-1.5-1.5z"/></svg>已完成</span>
+                    <span class="iconbtn" style="width:32px;height:32px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#767C8C" stroke-width="1.8"><path d="M4 20h4L20 8l-4-4L4 16z"/></svg></span>
+                  </div>
+                  <div class="tx">背诵《观沧海》并默写，家长签字；练习册 P32–P34 全部做完。</div>
+                </div>
+              </div>
+              <!-- 未完成带图 -->
+              <div class="hw">
+                <div class="bar" style="background:#10B981"></div>
+                <div class="in">
+                  <div class="r1">
+                    <span class="tag" style="background:#E6F8F1;color:#0E9F6E">数学</span>
+                    <span style="display:flex;align-items:center;gap:3px;font-size:11px;color:var(--ink-3)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#767C8C" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>22 分</span>
+                    <span class="sp" style="flex:1"></span>
+                    <span class="pill-s" style="background:var(--surface-2);color:var(--ink-3)">未完成</span>
+                    <span class="iconbtn" style="width:32px;height:32px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#767C8C" stroke-width="1.8"><path d="M4 20h4L20 8l-4-4L4 16z"/></svg></span>
+                  </div>
+                  <div class="tx">口算卡 20 题计时完成，<span class="mark">[图1]</span> 上的错题全部订正一遍。</div>
+                  <div class="stack" style="width:84px;height:84px;margin-top:10px">
+                    <div class="photo" style="width:84px;height:84px"></div>
+                    <div class="p2" style="width:84px;height:84px;left:6px;top:6px"></div>
+                    <div class="bd">展开 2</div>
+                  </div>
+                </div>
+              </div>
+              <!-- 待同步 -->
+              <div class="hw">
+                <div class="bar" style="background:#F59E0B"></div>
+                <div class="in">
+                  <div class="r1">
+                    <span class="tag" style="background:#FEF3E2;color:#B26A05">英语</span>
+                    <span class="sp" style="flex:1"></span>
+                    <span class="pill-s" style="background:var(--warning-soft);color:var(--warning-ink)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17a4 4 0 0 1 1-7.9A6 6 0 0 1 17 9.5A3.5 3.5 0 0 1 17.5 17z"/></svg>待同步</span>
+                    <span class="iconbtn" style="width:32px;height:32px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#767C8C" stroke-width="1.8"><path d="M4 20h4L20 8l-4-4L4 16z"/></svg></span>
+                  </div>
+                  <div class="tx">跟读 Unit 5 课文三遍，生词抄写 2 遍。</div>
+                </div>
+              </div>
+            </div>
+            <div style="height:16px"></div>
+          </div>
+          <div style="flex:none;padding:10px 16px 12px;background:var(--bg)">
+            <div class="btn pri"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>布置新作业</div>
+          </div>
+          <div class="navbar">
+            <div class="it on"><div class="ind"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4453D8" stroke-width="1.9"><path d="M4 20h4L20 8l-4-4L4 16z"/></svg></div>布置</div>
+            <div class="it"><div class="ind"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg></div>历史</div>
+            <div class="it"><div class="ind"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg></div>统计</div>
+            <div class="it"><div class="ind"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7.5 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H1a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 2.6 7.5a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H7a1.6 1.6 0 0 0 1-1.5V1a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg></div>设置</div>
+          </div>
+          <div class="homebar"><i></i></div>
+        </div>
+      </div>
+      <div class="note">
+        <h5>该屏改动</h5>
+        <ul>
+          <li><b>进度条上移</b>：把「已完成 2/5 科」从 12px 灰字改成独立卡 + 进度条，成为首屏第一视觉块。</li>
+          <li><b>卡片去掉整体透明</b>：已完成态改为「底色 #FCFCFE + 正文 ink-3 + 删除线 + 绿色徽标」，色条保留 50% 不透明 —— 对比度 2.6:1 → 4.6:1。</li>
+          <li><b>「编辑」改图标按钮</b>：32×32（触摸区 44），和整卡点击进入详情不再互相抢视觉。</li>
+          <li><b>时长条</b>：图标进 36px 圆角容器，渐变底统一为 primary-soft 体系，和语文蓝不再撞色。</li>
+          <li><b>卡片阴影 s1 + 间距 12</b>：灰底上终于能看出「一张一张」。</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ============ 屏 2：孩子端今日 ============ -->
+    <div class="shot">
+      <div class="cap"><b>2 · 孩子端「今日」</b><div class="sub">大标题 + 环形进度 + 48dp 打勾区</div></div>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span class="rt"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="batt"><i></i></span></span></div>
+        <div class="appbar"><span class="t">今日作业</span><span class="sp"></span>
+          <span style="width:30px;height:30px;border-radius:50%;background:#E8ECFB;color:#4453D8;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;margin-right:10px">张</span>
+        </div>
+        <div class="body">
+          <div class="scroll" style="padding-top:2px">
+            <div style="display:flex;align-items:center;gap:14px;padding:6px 0 14px">
+              <div style="flex:1">
+                <div style="font-size:13px;color:var(--ink-2)">10月30日 · 周五</div>
+                <div style="font-size:22px;font-weight:700;margin-top:4px">今天还有 3 科</div>
+              </div>
+              <div class="ring">
+                <svg width="52" height="52" viewBox="0 0 52 52">
+                  <circle cx="26" cy="26" r="21" fill="none" stroke="#E6E9F2" stroke-width="5"/>
+                  <circle cx="26" cy="26" r="21" fill="none" stroke="#5B6BF5" stroke-width="5" stroke-linecap="round" stroke-dasharray="132" stroke-dashoffset="53"/>
+                </svg>
+                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--primary-ink)">2/5</div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div class="hw done">
+                <div class="bar" style="background:#2F7FF3"></div>
+                <div class="in">
+                  <div class="r1">
+                    <span class="tag" style="background:#EBF3FF;color:#2563EB">语文</span>
+                    <span class="sp" style="flex:1"></span>
+                    <span class="tapzone"><span class="circle on" style="width:28px;height:28px"><svg width="17" height="17" viewBox="0 0 24 24" fill="#fff"><path d="M9 16.2l-3.5-3.5L4 14.2l5 5 11-11-1.5-1.5z"/></svg></span></span>
+                  </div>
+                  <div class="tx" style="font-size:15px">背诵《观沧海》并默写，家长签字。</div>
+                </div>
+              </div>
+              <div class="hw">
+                <div class="bar" style="background:#10B981"></div>
+                <div class="in">
+                  <div class="r1">
+                    <span class="tag" style="background:#E6F8F1;color:#0E9F6E">数学</span>
+                    <span class="sp" style="flex:1"></span>
+                    <span class="tapzone"><span class="circle" style="width:28px;height:28px"></span></span>
+                  </div>
+                  <div class="tx" style="font-size:15px">口算卡 20 题计时完成，<span class="mark">[图1]</span> 上的错题订正一遍。</div>
+                  <div class="stack" style="width:84px;height:84px;margin-top:10px">
+                    <div class="photo" style="width:84px;height:84px"></div>
+                    <div class="p2" style="width:84px;height:84px;left:6px;top:6px"></div>
+                    <div class="bd">展开 2</div>
+                  </div>
+                </div>
+              </div>
+              <div class="hw">
+                <div class="bar" style="background:#7C3AED"></div>
+                <div class="in">
+                  <div class="r1">
+                    <span class="tag" style="background:#F1ECFE;color:#7C3AED">科学</span>
+                    <span class="sp" style="flex:1"></span>
+                    <span class="tapzone"><span class="circle" style="width:28px;height:28px"></span></span>
+                  </div>
+                  <div class="tx" style="font-size:15px">观察绿豆发芽第 3 天，记录高度并画下来。</div>
+                </div>
+              </div>
+            </div>
+            <!-- 全部完成态 -->
+            <div class="card" style="margin-top:16px;padding:14px;background:var(--success-soft);border-color:#BEEAD8;display:flex;align-items:center;gap:12px">
+              <span style="width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="#0E9F6E"><path d="M9 16.2l-3.5-3.5L4 14.2l5 5 11-11-1.5-1.5z"/></svg>
+              </span>
+              <div><div style="font-size:15px;font-weight:600;color:#0B7A55">全部完成时的庆祝区</div>
+              <div style="font-size:11px;color:#3F8F72;margin-top:2px">5 科全部完成 · 今天用了 46 分钟</div></div>
+            </div>
+            <div style="height:14px"></div>
+          </div>
+          <div class="navbar">
+            <div class="it on"><div class="ind"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4453D8" stroke-width="1.9"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></div>今日</div>
+            <div class="it"><div class="ind"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></div>日历</div>
+            <div class="it"><div class="ind"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.4"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></div>我的</div>
+          </div>
+          <div class="homebar"><i></i></div>
+        </div>
+      </div>
+      <div class="note">
+        <h5>该屏改动</h5>
+        <ul>
+          <li><b>打勾区 26 → 48dp</b>：视觉圆 28dp 不变，外面套 48×48 触摸盒（负 margin 吃进卡片内边距，不撑高卡片）。WA/G 与儿童手指都够。</li>
+          <li><b>状态胶囊 → 环形进度</b>：52dp 圆环显示 2/5，比「已完成 2/5」文字更快读；同时把大标题改成「今天还有 3 科」，说的是剩余而不是总数。</li>
+          <li><b>正文 14 → 15、卡片间距 12</b>：孩子端信息量小，可以放松。</li>
+          <li><b>新增全部完成庆祝区</b>：5 科打完勾时顶部换成绿色块（现在打完最后一项没有任何反馈，孩子不知道「结束了」）。</li>
+          <li>已完成卡片同样去掉整卡透明，只降正文色阶，色条保留 —— 一眼还能看出是语文。</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ============ 屏 3：详情页 ============ -->
+    <div class="shot">
+      <div class="cap"><b>3 · 作业详情（孩子端）</b><div class="sub">学科色页头 + 底部完成 CTA</div></div>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span class="rt"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="batt"><i></i></span></span></div>
+        <div class="appbar"><span class="iconbtn" style="width:40px"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#171A22" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg></span><span class="t" style="font-size:16px">数学</span><span class="sp"></span><span class="iconbtn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#5B6273" stroke-width="1.8"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg></span></div>
+        <div class="body">
+          <div class="scroll">
+            <div style="background:linear-gradient(135deg,#E6F8F1,#F4FBF8);border:1px solid #CDEFE0;border-radius:16px;padding:16px">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span class="tag" style="background:#10B981;color:#fff">数学</span>
+                <span style="font-size:12px;color:#3F8F72">10月30日 · 周五</span>
+                <span class="sp" style="flex:1"></span>
+                <span class="pill-s" style="background:#fff;color:var(--ink-3)">未完成</span>
+              </div>
+              <div style="font-size:17px;font-weight:600;margin-top:10px;line-height:1.5">口算 + 错题订正</div>
+            </div>
+            <div style="font-size:16px;line-height:1.9;color:var(--ink-1);margin-top:18px">
+              口算卡 20 题，计时 5 分钟内完成；<br>
+              昨天试卷上的错题全部订正一遍，写在订正本上。
+            </div>
+            <div style="margin-top:14px;font-size:16px;line-height:1.9"><span class="mark">[图1]</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+              <div class="photo" style="height:112px"></div>
+              <div class="photo" style="height:112px"></div>
+            </div>
+            <div style="margin-top:16px;font-size:16px;line-height:1.9"><span class="mark">[图2]</span></div>
+            <div style="margin-top:10px"><div class="photo" style="height:150px"></div></div>
+            <div style="height:20px"></div>
+          </div>
+          <div style="flex:none;padding:10px 16px 12px;background:#fff;border-top:1px solid var(--border);display:flex;gap:12px">
+            <div class="btn gho" style="flex:1;height:50px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5B6273" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>标记完成</div>
+            <div class="btn pri" style="flex:1;height:50px">我做好了</div>
+          </div>
+          <div class="homebar" style="background:#fff"><i></i></div>
+        </div>
+      </div>
+      <div class="note">
+        <h5>该屏改动</h5>
+        <ul>
+          <li><b>新增学科色页头卡</b>：学科标签 + 日期 + 完成状态 + 一句话标题，进页面先确认「进对了」。</li>
+          <li><b>底部双 CTA</b>：详情页现在只能点右上小圆打勾，是最关键动作却最不显眼；底部给 50dp 主按钮「我做好了」，带完成动效（圆放大 + 轻震动）。</li>
+          <li><b>[图N] 标记在正文里高亮</b>（主色浅底），让孩子知道图在哪一段后面；图片网格 gap 8 → 10、圆角 10。</li>
+          <li>详情正文 16 → 17、行高 1.9 保留（长文阅读舒服）。</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ============ 屏 4：编辑页 ============ -->
+    <div class="shot">
+      <div class="cap"><b>4 · 编辑作业（家长端）</b><div class="sub">分区卡片化 · 底部双按钮</div></div>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span class="rt"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="batt"><i></i></span></span></div>
+        <div class="appbar"><span class="iconbtn" style="width:40px"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#171A22" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg></span><span class="t" style="font-size:16px">编辑作业</span><span class="sp"></span><span style="font-size:14px;color:var(--ink-3);padding-right:12px">取消</span></div>
+        <div class="body">
+          <div class="scroll">
+            <!-- 分区 1 -->
+            <div class="card" style="padding:14px">
+              <div class="sec-t" style="margin:0 0 10px"><span class="n">1</span>给谁 · 哪天</div>
+              <div style="display:flex;gap:8px">
+                <div class="input" style="flex:1;display:flex;align-items:center;gap:8px;font-size:15px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#767C8C" stroke-width="1.8"><circle cx="12" cy="8" r="3.4"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>张小满</div>
+                <div class="input" style="display:flex;align-items:center;gap:6px;font-size:14px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#767C8C" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>10-30</div>
+              </div>
+            </div>
+            <!-- 分区 2 -->
+            <div class="card" style="padding:14px;margin-top:12px">
+              <div class="sec-t" style="margin:0 0 10px"><span class="n">2</span>学科</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <span class="chip">语文</span>
+                <span class="chip on" style="background:#E6F8F1;border-color:#A7E3C8;color:#0E9F6E">数学</span>
+                <span class="chip">英语</span>
+                <span class="chip">科学</span>
+                <span class="chip">道法</span>
+                <span class="chip" style="color:var(--ink-4)">自定义</span>
+              </div>
+            </div>
+            <!-- 分区 3 -->
+            <div class="card" style="padding:14px;margin-top:12px">
+              <div class="sec-t" style="margin:0 0 10px"><span class="n">3</span>作业内容</div>
+              <div class="input focus" style="min-height:104px;font-size:15px;line-height:1.7">
+                口算卡 20 题计时完成，<span class="mark">[图1]</span> 上的错题全部订正一遍。
+                <div style="text-align:right;font-size:11px;color:var(--ink-4);margin-top:8px">28 / 1000</div>
+              </div>
+              <div class="hint" style="margin-top:8px">图片按正文里 <span class="mark" style="padding:0 2px">[图1]</span> 的位置插入；把它剪到别的段落后面就能换位置。</div>
+            </div>
+            <!-- 分区 4 -->
+            <div class="card" style="padding:14px;margin-top:12px">
+              <div class="sec-t" style="margin:0 0 10px"><span class="n">4</span>图片 <span style="font-weight:400;color:var(--ink-4);font-size:11px">共 2 张</span></div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+                <div class="photo" style="height:96px"></div>
+                <div class="photo" style="height:96px"></div>
+                <div class="tile-add" style="height:96px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#A6ACBB" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>添加</div>
+              </div>
+            </div>
+            <div style="height:16px"></div>
+          </div>
+          <div style="flex:none;padding:10px 16px 12px;background:#fff;border-top:1px solid var(--border);display:flex;gap:12px">
+            <div class="btn dgr" style="width:96px;height:50px">删除</div>
+            <div class="btn pri" style="flex:1;height:50px">保存修改</div>
+          </div>
+          <div class="homebar" style="background:#fff"><i></i></div>
+        </div>
+      </div>
+      <div class="note">
+        <h5>该屏改动</h5>
+        <ul>
+          <li><b>四段表单各自装进白卡</b>，标题带序号方块：下滑到任何位置都知道自己在填哪一段（原来靠 18dp 空白分隔）。</li>
+          <li><b>删除从 AppBar 图标挪到底部</b>： destructive 操作放在拇指区、和主按钮并列，先看到再决定，避免误触顶部小图标。</li>
+          <li><b>字数移到输入框内右下</b>，聚焦时才出现（现在常驻，容易和正文混淆）。</li>
+          <li><b>[图N] 高亮 + 提示文案下沉</b>：把「图片位置看正文里的 [图N]」从标题行右侧（常被忽略）挪到输入框下方，并给出「剪走即可换位置」的可操作说法。</li>
+          <li>输入框圆角 12 → 10（与图块一致），聚焦态加 3px 主色外发光。</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ============ 屏 5：统计 ============ -->
+    <div class="shot">
+      <div class="cap"><b>5 · 统计</b><div class="sub">大数字 + 更粗的学科条</div></div>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span class="rt"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="batt"><i></i></span></span></div>
+        <div class="appbar"><span class="t">统计</span></div>
+        <div class="body">
+          <div class="scroll">
+            <div style="display:flex;background:var(--surface-2);border-radius:12px;padding:3px">
+              <div style="flex:1;text-align:center;padding:8px 0;font-size:13px;font-weight:600;background:#fff;border-radius:9px;box-shadow:var(--s1);color:var(--ink-1)">日</div>
+              <div style="flex:1;text-align:center;padding:8px 0;font-size:13px;color:var(--ink-3)">月</div>
+              <div style="flex:1;text-align:center;padding:8px 0;font-size:13px;color:var(--ink-3)">年</div>
+            </div>
+            <div class="card" style="margin-top:12px;padding:10px 12px;display:flex;align-items:center;gap:8px">
+              <span class="iconbtn" style="width:32px;height:32px"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#5B6273" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg></span>
+              <div style="flex:1;text-align:center"><div style="font-size:15px;font-weight:600">2026-10-30</div><div style="font-size:11px;color:var(--ink-3)">周四 · 单日</div></div>
+              <span class="iconbtn" style="width:32px;height:32px"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#5B6273" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></span>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <span class="chip">本月</span><span class="chip">本年</span><span class="chip on">自定义</span>
+            </div>
+            <div class="card" style="margin-top:14px;padding:18px;background:linear-gradient(135deg,#EEF2FF,#F8FAFF);border-color:#DDE3F7">
+              <div style="font-size:12px;color:var(--ink-2)">当日总时长</div>
+              <div style="font-size:32px;font-weight:700;letter-spacing:-.5px;font-variant-numeric:tabular-nums;margin-top:6px">46<span style="font-size:16px;font-weight:600;color:var(--ink-2);margin-left:4px">分钟</span></div>
+              <div style="font-size:11px;color:var(--ink-3);margin-top:6px">5 天有记录 · 日均 32 分钟</div>
+            </div>
+            <div class="sec-t" style="margin-top:20px">按学科</div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div>
+                <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:#E6F8F1;color:#0E9F6E">数学</span><span class="sp" style="flex:1"></span><span style="font-size:13px;font-weight:600">22 分</span><span style="font-size:11px;color:var(--ink-3);width:32px;text-align:right">48%</span></div>
+                <div class="progress" style="height:8px;margin-top:7px"><i style="width:100%;background:#10B981"></i></div>
+              </div>
+              <div>
+                <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:#EBF3FF;color:#2563EB">语文</span><span class="sp" style="flex:1"></span><span style="font-size:13px;font-weight:600">18 分</span><span style="font-size:11px;color:var(--ink-3);width:32px;text-align:right">39%</span></div>
+                <div class="progress" style="height:8px;margin-top:7px"><i style="width:82%;background:#2F7FF3"></i></div>
+              </div>
+              <div>
+                <div style="display:flex;align-items:center;gap:8px"><span class="tag" style="background:#F1ECFE;color:#7C3AED">科学</span><span class="sp" style="flex:1"></span><span style="font-size:13px;font-weight:600">6 分</span><span style="font-size:11px;color:var(--ink-3);width:32px;text-align:right">13%</span></div>
+                <div class="progress" style="height:8px;margin-top:7px"><i style="width:27%;background:#7C3AED"></i></div>
+              </div>
+            </div>
+            <div class="sec-t" style="margin-top:20px">按天</div>
+            <div class="card" style="overflow:hidden">
+              <div style="display:flex;align-items:center;padding:12px 14px"><span style="font-size:14px">10-30 周四</span><span style="font-size:11px;color:var(--ink-3);margin-left:8px">3 科</span><span class="sp" style="flex:1"></span><span style="font-size:14px;font-weight:600;font-variant-numeric:tabular-nums">46 分</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A6ACBB" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></div>
+              <div class="divider" style="margin:0 14px"></div>
+              <div style="display:flex;align-items:center;padding:12px 14px"><span style="font-size:14px">10-29 周三</span><span style="font-size:11px;color:var(--ink-3);margin-left:8px">2 科</span><span class="sp" style="flex:1"></span><span style="font-size:14px;font-weight:600;font-variant-numeric:tabular-nums">28 分</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A6ACBB" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></div>
+              <div class="divider" style="margin:0 14px"></div>
+              <div style="display:flex;align-items:center;padding:12px 14px;color:var(--primary-ink)"><span style="font-size:13px;font-weight:600">查看全部 12 天</span><span class="sp" style="flex:1"></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4453D8" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></div>
+            </div>
+            <div style="height:20px"></div>
+          </div>
+          <div class="navbar">
+            <div class="it"><div class="ind"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h4L20 8l-4-4L4 16z"/></svg></div>布置</div>
+            <div class="it"><div class="ind"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg></div>历史</div>
+            <div class="it on"><div class="ind"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4453D8" stroke-width="1.9"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg></div>统计</div>
+            <div class="it"><div class="ind"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8"/></svg></div>设置</div>
+          </div>
+          <div class="homebar"><i></i></div>
+        </div>
+      </div>
+      <div class="note">
+        <h5>该屏改动</h5>
+        <ul>
+          <li><b>总时长数字 12 → 32px</b>，等宽数字（tabular-nums），单位「分钟」降为 16px 次级 —— 一眼读到数字而不是先读单位。</li>
+          <li><b>学科条 6 → 8px、圆角 4 → 999</b>：细条在高 DPI 上易糊，粗条更接近"占比"语义。</li>
+          <li><b>百分比不再右对齐错位</b>：固定 32px 宽右对齐，三行数字竖直成列。</li>
+          <li><b>hero 与首页时长条统一</b>：同一个 primary-soft 渐变、同一套圆角，不再各写一份硬编码色。</li>
+          <li>模式选择器轨道 → surface-2，选中块加 s1 阴影（现在只有白色块无阴影，浮不起来）。</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ============ 屏 6：组件与状态 ============ -->
+    <div class="shot">
+      <div class="cap"><b>6 · 组件与状态规范</b><div class="sub">按钮 / 输入 / 卡片 / 空态 / 骨架屏</div></div>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span class="rt"><span class="sig"><i></i><i></i><i></i><i></i></span><span class="batt"><i></i></span></span></div>
+        <div class="appbar"><span class="t">组件规范</span></div>
+        <div class="body">
+          <div class="scroll">
+            <div class="sec-t">按钮 · 50dp 高 · 圆角 14</div>
+            <div class="btn pri">主按钮 · 布置新作业</div>
+            <div style="height:8px"></div>
+            <div class="btn gho">次按钮 · 取消</div>
+            <div style="height:8px"></div>
+            <div class="btn dgr">危险 · 删除</div>
+            <div style="height:8px"></div>
+            <div class="btn pri" style="background:#A9B8F8;box-shadow:none">禁用态</div>
+            <div style="height:8px"></div>
+            <div class="btn pri" style="color:transparent"><span style="width:20px;height:20px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;display:block"></span></div>
+
+            <div class="sec-t">输入框 · 圆角 10</div>
+            <div class="input" style="color:var(--ink-4)">默认 / 占位提示</div>
+            <div style="height:8px"></div>
+            <div class="input focus">聚焦 · 3px 主色外发光</div>
+            <div style="height:8px"></div>
+            <div class="input" style="border-color:#F0B4B4;box-shadow:0 0 0 3px rgba(239,68,68,.12)">错误 · 正文超过 1000 字</div>
+
+            <div class="sec-t">学科标签 / 胶囊</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <span class="tag" style="background:#EBF3FF;color:#2563EB">语文</span>
+              <span class="tag" style="background:#E6F8F1;color:#0E9F6E">数学</span>
+              <span class="tag" style="background:#FEF3E2;color:#B26A05">英语</span>
+              <span class="tag" style="background:var(--surface-2);color:var(--ink-3)">未完成</span>
+              <span class="tag" style="background:var(--success-soft);color:var(--success-ink)">已完成</span>
+              <span class="tag" style="background:var(--warning-soft);color:var(--warning-ink)">待同步</span>
+            </div>
+
+            <div class="sec-t">卡片三态</div>
+            <div class="hw"><div class="bar" style="background:#2F7FF3"></div><div class="in"><div class="r1"><span class="tag" style="background:#EBF3FF;color:#2563EB">语文</span><span class="sp" style="flex:1"></span><span class="pill-s" style="background:var(--surface-2);color:var(--ink-3)">未完成</span></div><div class="tx" style="margin-top:6px">未完成 · 白底 · ink-1 正文</div></div></div>
+            <div style="height:8px"></div>
+            <div class="hw done"><div class="bar" style="background:#2F7FF3"></div><div class="in"><div class="r1"><span class="tag" style="background:#EBF3FF;color:#2563EB">语文</span><span class="sp" style="flex:1"></span><span class="pill-s" style="background:var(--success-soft);color:var(--success-ink)">已完成</span></div><div class="tx" style="margin-top:6px">已完成 · 浅底 + ink-3 + 删除线</div></div></div>
+            <div style="height:8px"></div>
+            <div class="hw" style="border-style:dashed;border-color:var(--border-strong)"><div class="bar" style="background:#F59E0B"></div><div class="in"><div class="r1"><span class="tag" style="background:#FEF3E2;color:#B26A05">英语</span><span class="sp" style="flex:1"></span><span class="pill-s" style="background:var(--warning-soft);color:var(--warning-ink)">待同步</span></div><div class="tx" style="margin-top:6px">待同步 · 虚线描边</div></div></div>
+
+            <div class="sec-t">空态</div>
+            <div style="text-align:center;padding:18px 12px">
+              <div style="width:56px;height:56px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;margin:0 auto">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#A6ACBB" stroke-width="1.7"><path d="M8 3h8l5 5v13H3V3z"/><path d="M8 12h8M8 16h5"/></svg>
+              </div>
+              <div style="font-size:15px;font-weight:600;margin-top:12px">今天还没有布置作业</div>
+              <div style="font-size:12px;color:var(--ink-3);margin-top:6px;line-height:1.6">下拉刷新，或点右上角「刷新」重新拉取</div>
+              <div style="margin-top:14px;display:inline-flex" class="btn pri" >布置新作业</div>
+            </div>
+
+            <div class="sec-t">加载骨架屏（替代裸转圈）</div>
+            <div class="card" style="padding:14px">
+              <div class="skeleton" style="height:13px;width:40%"></div>
+              <div class="skeleton" style="height:13px;width:88%;margin-top:10px"></div>
+              <div class="skeleton" style="height:13px;width:64%;margin-top:8px"></div>
+              <div class="skeleton" style="height:64px;width:64px;margin-top:12px;border-radius:10px"></div>
+            </div>
+            <div style="height:20px"></div>
+          </div>
+          <div class="homebar"><i></i></div>
+        </div>
+      </div>
+      <div class="note">
+        <h5>补齐的状态</h5>
+        <ul>
+          <li><b>按钮</b>：默认 / 按下（阴影收掉 + 底色加深）/ 禁用（#A9B8F8）/ 加载（内嵌转圈，文字占位保持宽度不跳）。</li>
+          <li><b>输入框</b>：默认 / 聚焦（主色描边 + 3px 外发光）/ 错误（红描边 + 红底提示）。</li>
+          <li><b>卡片</b>：未完成 / 已完成 / 待同步（虚线描边，和「未完成」区分开）。</li>
+          <li><b>空态</b>：图标进 56dp 圆形浅底容器，正文 ink-1、说明 ink-3，带主 CTA。</li>
+          <li><b>骨架屏</b>替代裸 CircularProgressIndicator：首屏等待时不再像卡死。</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <h2 class="sec">四、关键对比：作业卡片</h2>
+  <div class="sec-desc">改动最集中的组件。左＝现在，右＝优化后。</div>
+  <div class="cmp">
+    <div class="box bad">
+      <h5>现状</h5>
+      <div style="position:relative;background:#fff;border:1px solid #E6E8EF;border-radius:14px;overflow:hidden">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:#2F7FF3;opacity:.62"></div>
+        <div style="padding:11px 12px 11px 16px;opacity:.62">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="background:rgba(59,130,246,.12);color:#2F7FF3;font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px">语文</span>
+            <span style="flex:1"></span>
+            <span style="background:rgba(16,185,129,.12);color:#10B981;font-size:11px;padding:3px 8px;border-radius:20px">已完成</span>
+            <span style="font-size:12px;color:#5B6BF5">编辑</span>
+          </div>
+          <div style="margin-top:6px;font-size:14px;line-height:1.5;color:#9CA3AF;text-decoration:line-through">背诵《观沧海》并默写，家长签字。</div>
+        </div>
+      </div>
+      <div class="hint" style="margin-top:12px">整卡 opacity 0.62 → 正文对比度约 2.6:1，色条与标签一起被稀释；「编辑」12px 文字按钮和卡片点击区挤在一起。</div>
+    </div>
+    <div class="box good">
+      <h5>优化后</h5>
+      <div class="hw done">
+        <div class="bar" style="background:#2F7FF3"></div>
+        <div class="in">
+          <div class="r1">
+            <span class="tag" style="background:#EBF3FF;color:#2563EB">语文</span>
+            <span class="sp" style="flex:1"></span>
+            <span class="pill-s" style="background:var(--success-soft);color:var(--success-ink)">已完成</span>
+            <span class="iconbtn" style="width:32px;height:32px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#767C8C" stroke-width="1.8"><path d="M4 20h4L20 8l-4-4L4 16z"/></svg></span>
+          </div>
+          <div class="tx" style="margin-top:7px">背诵《观沧海》并默写，家长签字。</div>
+        </div>
+      </div>
+      <div class="hint" style="margin-top:12px">不再整卡透明：底色 #FCFCFE、正文 #767C8C（4.6:1）、色条保留 50%、学科标签保持原色。编辑改为 32dp 图标按钮，触摸区 44dp。</div>
+    </div>
+  </div>
+
+  <div class="footnote">
+    <h4>已确认并实施（2026-10-30）</h4>
+    <ol>
+      <li><b>范围</b>：全部 6 屏按效果图改造 —— 令牌体系、组件状态、编辑页分区重构、统计页条形重做；历史/设置/日历/我的同步对齐令牌。</li>
+      <li><b>主色</b>：#4C6EF5 → <b>#5B6BF5</b>（蓝紫）。为拉开色相距离，语文 #3B82F6 → #2F7FF3、科学 #8B5CF6 → #7C3AED。</li>
+      <li><b>孩子端详情页</b>：新增底部 50dp 主按钮「我做好了」；完成后置为「已完成 · 点此撤销」，打勾即停表、撤销即续表。</li>
+    </ol>
+  </div>
+
+</div>
+</body>
+</html>

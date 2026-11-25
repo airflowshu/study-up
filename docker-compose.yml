@@ -1,0 +1,139 @@
+# 家庭作业系统 · 自托管编排
+#
+# 两个容器（db + api），对外零端口：唯一入口是 NAS 上常驻那条 cloudflared 隧道。
+# 数据库和存储都在内网，宿主机不放任何端口出去（局域网调试见 api 的注释）。
+#
+# 资源按 4GB 内存的 NAS 配：
+#   db 512MB / api 512MB，加起来不到 1.1GB，留足余量给系统。
+
+name: homework
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: homework
+      POSTGRES_USER: homework
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?请在 .env 里设置 POSTGRES_PASSWORD}
+      TZ: Asia/Shanghai
+    command:
+      - postgres
+      # 整库只有几 MB（一个家庭、几十条作业），默认 128MB 的共享缓冲设得过大。
+      # 改 32MB 主要是压「天花板」：实测 PG 并不会一次性占满（Linux 对匿名映射
+      # 延迟分配物理页，只有真正被访问的页才落内存），所以这一项对当前常驻内存
+      # 的影响很小，实测在 1-2MB 量级。它的价值在于数据量涨上来后不会白占。
+      - -c
+      - shared_buffers=32MB
+      - -c
+      - max_connections=30
+      - -c
+      - work_mem=4MB
+      - -c
+      - log_min_duration_statement=800
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U homework -d homework"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+    deploy:
+      resources:
+        limits: { memory: 512m }
+
+  api:
+    # 镜像在开发机上构建、docker save 传到 NAS 后 load。
+    # 有了 image 标签，`compose up` 会优先用这个本地镜像，不会在 NAS 上重新编译。
+    # 要现场构建时显式加 --build。
+    image: homework-api:1.1.0
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: "8787"
+      # V8 按「可用内存」决定堆上限，容器给了 512MB 它就按大数走，GC 变得很懒：
+      # 内存能一路爬到 150-200MB 才回收一次。钉死 128MB 让 GC 提前动手，
+      # 常驻稳定在 60-80MB。
+      #
+      # 128MB 是够的：JSON 请求体上限 1MB，图片直传 COS 不经过服务端，
+      # APK 上传走流式 pipeline 不缓冲。没有任何一条路径需要大堆。
+      NODE_OPTIONS: --max-old-space-size=128
+      DATABASE_URL: postgres://homework:${POSTGRES_PASSWORD}@db:5432/homework
+      JWT_SECRET: ${JWT_SECRET:?请在 .env 里设置 JWT_SECRET}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?请在 .env 里设置 ADMIN_TOKEN}
+      PUBLIC_ORIGIN: https://${APP_HOST:?请在 .env 里设置 APP_HOST}
+      DATA_DIR: /data
+      TZ: Asia/Shanghai
+      # 图片直传 COS。四项全填才启用；留空则图片继续存在本地卷、走隧道往返。
+      # 密钥只在这台机器的 .env 里，不进镜像、不进仓库。
+      COS_SECRET_ID: ${COS_SECRET_ID:-}
+      COS_SECRET_KEY: ${COS_SECRET_KEY:-}
+      COS_BUCKET: ${COS_BUCKET:-}
+      COS_REGION: ${COS_REGION:-}
+    volumes:
+      - uploads:/data
+    networks: [backend, edge]
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        ["CMD-SHELL", "wget -qO- http://127.0.0.1:8787/healthz >/dev/null || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+    deploy:
+      resources:
+        limits: { memory: 512m }
+    # 局域网调试时可临时打开（默认不开，避免绕过隧道直接暴露明文 HTTP）：
+    # ports:
+    #   - "192.168.1.100:8787:8787"
+
+  # 隧道不在这套编排里。
+  #
+  # NAS 上已经有一个常驻的 cloudflared（compose 项目 cf_tunnel，见
+  # /vol2/1000/docker/cf_tunnel），公网入口复用它，避免同一条隧道跑两个客户端。
+  # 它只需要被接进下面的 edge 网络，就能解析到 `api`：
+  #
+  #   docker network connect homework_edge cloudflared
+  #
+  # 然后在 Cloudflare Zero Trust 面板的隧道里加 Public Hostname：
+  #   study-up.example.com  ->  http://api:8787
+  #
+  # 自己跑一个独立隧道也可以，把下面这段取消注释并填 TUNNEL_TOKEN：
+  #
+  #  cloudflared:
+  #    image: cloudflare/cloudflared:latest
+  #    command: tunnel --no-autoupdate run
+  #    environment:
+  #      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?请在 .env 里设置 TUNNEL_TOKEN}
+  #    networks: [edge]
+  #    depends_on:
+  #      api: { condition: service_healthy }
+  #    restart: unless-stopped
+  #    deploy:
+  #      resources:
+  #        limits: { memory: 128m }
+
+networks:
+  # 公网入口那条隧道接入这里，才解析得到 api
+  edge: {}
+  # api ↔ db。internal 让这个网络完全没有出站能力，数据库连不出去。
+  backend:
+    internal: true
+
+volumes:
+  pgdata:
+  uploads:

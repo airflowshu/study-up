@@ -1,0 +1,35 @@
+# 飞牛 fnOS 上以 Docker 方式装 Tailscale 的备选方案。
+#
+# 仅在应用中心搜不到 Tailscale 时使用。有官方应用就优先用官方应用——
+# 它随系统启动、升级也在应用中心里管，比容器省心。
+#
+# 用法（在飞牛 SSH 里，或用 Docker 界面的「Compose 项目」导入）：
+#   1. 把 TS_AUTHKEY 换成 tailscale 后台 Settings → Keys 生成的 auth key
+#      （勾上 Reusable、Ephemeral 不要勾、Tags 可留空）
+#   2. docker compose -f tailscale-fnos.yml up -d
+#   3. tailscale 后台能看到 fnos-nas，记下它的 100.x.y.z
+#
+# 两个必须项，改坏了就连不通：
+#   network_mode: host  —— 容器要接管宿主机网卡，才能让 100.x 地址落到宿主上，
+#                          从而 SSH 到 100.x:22 直接进 NAS 的 sshd
+#   /dev/net/tun 挂载   —— 没有它 tailscaled 起不来
+
+services:
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: tailscale
+    hostname: fnos-nas
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      TS_AUTHKEY: ${TS_AUTHKEY:?请填入 tailscale auth key}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_HOSTNAME: fnos-nas
+      # 需要从外部直连 NAS 所在局域网其它设备时才打开（如 192.168.0.0/24）
+      # TS_ROUTES: 192.168.0.0/24
+    volumes:
+      - ./tailscale-state:/var/lib/tailscale
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW

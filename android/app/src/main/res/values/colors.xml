@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 与 Flutter 侧 AppColors.pageBg 保持一致（0xFFF4F6FB）。
+         两边改一处就要同步另一处，否则启动瞬间会闪一下不同的底色。 -->
+    <color name="page_bg">#F4F6FB</color>
+</resources>
