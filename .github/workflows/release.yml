@@ -132,7 +132,7 @@ jobs:
           BT="$(ls -d "$SDK_ROOT"/build-tools/*/ | sort -V | tail -1)"
 
           echo "== 签名证书"
-          "${BT}apksigner" verify --print-certs "$APK" | tee /tmp/certs.txt
+          "${BT}apksigner" verify --verbose --print-certs "$APK" | tee /tmp/certs.txt
           if grep -qi 'CN=Android Debug' /tmp/certs.txt; then
             echo "!! 这是 debug 证书，不能发版" >&2
             exit 1
@@ -141,16 +141,17 @@ jobs:
             || { echo "!! 缺少 v2 签名，Android 7+ 会拒绝安装" >&2; exit 1; }
 
           echo "== 包信息"
-          "${BT}aapt2" dump badging "$APK" | head -1
-          "${BT}aapt2" dump badging "$APK" | grep -E "^package:" \
-            | grep -q "versionCode='${{ steps.ver.outputs.code }}'" \
+          "${BT}aapt2" dump badging "$APK" > /tmp/badging.txt
+          head -1 /tmp/badging.txt
+          grep -qE "^package:.*versionCode='${{ steps.ver.outputs.code }}'" /tmp/badging.txt \
             || { echo "!! versionCode 与 pubspec 不一致" >&2; exit 1; }
 
           echo "== 服务地址是否已注入"
           unzip -p "$APK" lib/arm64-v8a/libapp.so > /tmp/libapp.so
-          grep -a -o "$API_BASE" /tmp/libapp.so | head -1 || {
+          grep -a -F -q "$API_BASE" /tmp/libapp.so || {
             echo "!! 包里找不到 $API_BASE，--dart-define 没生效" >&2; exit 1; }
-          if grep -a -q 'homework\.example\.com' /tmp/libapp.so; then
+          echo "已确认注入 $API_BASE"
+          if grep -a -F -q 'homework.example.com' /tmp/libapp.so; then
             echo "!! 包里残留占位域名，装上去会连不上服务" >&2
             exit 1
           fi
