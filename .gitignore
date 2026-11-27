@@ -85,6 +85,8 @@ outputs/
 *.jks
 *.keystore
 key.properties
+# 密钥库的 base64 副本（只为粘贴到 GitHub Secrets，等同私钥，绝不入库）
+android/upload-keystore.base64.txt
 
 # ---- 根目录验收截图（含真实家庭码与孩子姓名，不入库）----
 /*.png

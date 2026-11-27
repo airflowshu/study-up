@@ -292,6 +292,21 @@ APK 落在 `<DATA_DIR>/uploads/apk/releases/homework-<version>.apk`，下载地�
 | `API_BASE` 填成 `http://192.168.x.x:8787` | 表里存的是内网地址，手机在外网打不开 | 发版一律用对外域名；内网地址只在本机联调时用 |
 | 系统代理（Clash/V2Ray 一类） | curl 把发往自家服务的请求也交给代理，代理对回环地址返回 502，看着像服务端挂了，实际服务端一个请求都没收到 | 脚本里所有 curl 都带 `--noproxy '*'` |
 
+### GitHub Release 分发
+
+NAS 之外还有一条路：打 `v*` tag 触发 `.github/workflows/release.yml`，CI 构建、校验、发 Release。适合「需要给版本留档、或手机在外网而 NAS 恰好不通」的场景。
+
+```bash
+# 改 pubspec.yaml 的 version（例如 1.2.2+14）→ 提交 → 打 tag
+git tag v1.2.2 && git push origin v1.2.2
+```
+
+产物是 `homework-<版本>.apk` + `SHA256SUMS.txt`，文件名与 `app_releases.download_url` 的模板 `homework-{version}.apk` 一致，可以直接把 Release 里的资源地址填进表。
+
+**签名已经换成正式密钥**（`android/upload-keystore.jks`，证书 `CN=StudyUp`），不再是 debug 密钥。副作用只有一次：**已安装的旧包都是 debug 签名，装新包会提示「签名不一致」，必须先卸载**。本项目 `allowBackup=false`，卸载会清空本地 SQLite，靠云端同步恢复——正式全量切换前先确认数据已同步。
+
+一次性配置（四个 secrets）和排错见 `docs/github-release-runbook.md`。
+
 #### 发完版先自检
 
 `flutter build apk` **只产出文件，不更新版本表**。打完包忘了跑 `release.sh`，`build/` 里躺着新包、用户那边永远收不到更新——界面上没有任何迹象能暴露这件事，只能靠人记得。这个坑踩过一次（1.0.4 打包完成但没写表，手机端一直说「已是最新」）。

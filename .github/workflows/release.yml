@@ -1,0 +1,213 @@
+name: Release
+
+# 打 tag（v1.2.1）即触发：构建 → 校验签名 → 建 GitHub Release。
+# 手动 workflow_dispatch 则只构建并上传为 workflow artifact，不发 Release。
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: '3.27.4'
+
+jobs:
+  android:
+    name: Android 安装包
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # 生成变更日志要完整历史与 tag
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      # android/gradle.properties 里钉了本机 JDK 的绝对路径（F:/Program Files/...），
+      # runner 上没有这个路径，Gradle 会以 "Java home supplied is invalid" 直接退出。
+      # 删掉这一行，让 Gradle 用 setup-java 提供的 JDK 17。
+      - name: 移除本机专用的 JDK 路径
+        run: sed -i '/^[[:space:]]*org\.gradle\.java\.home/d' android/gradle.properties
+
+      - name: 读取版本号
+        id: ver
+        run: |
+          full=$(grep -m1 '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | tr -d '[:space:]')
+          name=${full%%+*}
+          code=${full##*+}
+          if [ "$code" = "$name" ]; then
+            echo "pubspec.yaml 的 version 必须写成 1.2.1+13 的形式（+ 后是 versionCode）" >&2
+            exit 1
+          fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "版本 $name ($code)"
+
+      # tag 与 pubspec 版本不一致是发版事故的高发点：包名对得上、内容对不上。
+      - name: 校验 tag 与版本号一致
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$tag" != "${{ steps.ver.outputs.name }}" ]; then
+            echo "tag 是 $tag，pubspec 是 ${{ steps.ver.outputs.name }}，两者必须一致" >&2
+            exit 1
+          fi
+
+      - name: 校验发布所需 secrets
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          API_BASE: ${{ secrets.API_BASE }}
+        run: |
+          missing=""
+          [ -n "$KS" ] || missing="$missing ANDROID_KEYSTORE_BASE64"
+          [ -n "$KS_PASS" ] || missing="$missing ANDROID_KEYSTORE_PASSWORD"
+          [ -n "$KEY_ALIAS" ] || missing="$missing ANDROID_KEY_ALIAS"
+          [ -n "$KEY_PASS" ] || missing="$missing ANDROID_KEY_PASSWORD"
+          [ -n "$API_BASE" ] || missing="$missing API_BASE"
+          if [ -n "$missing" ]; then
+            echo "缺少 secrets:$missing" >&2
+            echo "在仓库 Settings → Secrets and variables → Actions 里补齐后重跑。" >&2
+            exit 1
+          fi
+
+      - name: 还原签名密钥
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > android/upload-keystore.jks
+          {
+            echo "storeFile=upload-keystore.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > android/key.properties
+          chmod 600 android/upload-keystore.jks android/key.properties
+          # 只打印摘要，绝不回显口令
+          keytool -list -keystore android/upload-keystore.jks \
+            -storepass "$KEYSTORE_PASSWORD" | tail -3
+
+      - name: 拉依赖
+        run: flutter pub get
+
+      # 不带 --target-platform：产出一个包含 arm64/armv7 的通用包，
+      # 与 tool/release.sh 上传到 NAS 的包保持同一种形态，
+      # app_releases 里的 download_url 模板 homework-{version}.apk 才不会错位。
+      - name: 构建 release APK
+        env:
+          API_BASE: ${{ secrets.API_BASE }}
+        run: |
+          flutter build apk --release --dart-define=API_BASE="$API_BASE"
+
+      # ---- 产物校验：签名、包名、版本、域名 ----
+      # 这次的起点就是「用 debug 签名发了正式包」，所以必须机器判定，不能靠眼看。
+      - name: 校验签名与包内容
+        env:
+          API_BASE: ${{ secrets.API_BASE }}
+        run: |
+          set -euo pipefail
+          APK=build/app/outputs/flutter-apk/app-release.apk
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          BT="$(ls -d "$SDK_ROOT"/build-tools/*/ | sort -V | tail -1)"
+
+          echo "== 签名证书"
+          "${BT}apksigner" verify --print-certs "$APK" | tee /tmp/certs.txt
+          if grep -qi 'CN=Android Debug' /tmp/certs.txt; then
+            echo "!! 这是 debug 证书，不能发版" >&2
+            exit 1
+          fi
+          grep -q 'v2 scheme (APK Signature Scheme v2): true' /tmp/certs.txt \
+            || { echo "!! 缺少 v2 签名，Android 7+ 会拒绝安装" >&2; exit 1; }
+
+          echo "== 包信息"
+          "${BT}aapt2" dump badging "$APK" | head -1
+          "${BT}aapt2" dump badging "$APK" | grep -E "^package:" \
+            | grep -q "versionCode='${{ steps.ver.outputs.code }}'" \
+            || { echo "!! versionCode 与 pubspec 不一致" >&2; exit 1; }
+
+          echo "== 服务地址是否已注入"
+          unzip -p "$APK" lib/arm64-v8a/libapp.so > /tmp/libapp.so
+          grep -a -o "$API_BASE" /tmp/libapp.so | head -1 || {
+            echo "!! 包里找不到 $API_BASE，--dart-define 没生效" >&2; exit 1; }
+          if grep -a -q 'homework\.example\.com' /tmp/libapp.so; then
+            echo "!! 包里残留占位域名，装上去会连不上服务" >&2
+            exit 1
+          fi
+
+      - name: 整理产物
+        run: |
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk \
+             "dist/homework-${{ steps.ver.outputs.name }}.apk"
+          cd dist
+          sha256sum ./*.apk > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          ls -la
+
+      - name: 生成发布说明
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          VERSION_NAME: ${{ steps.ver.outputs.name }}
+          VERSION_CODE: ${{ steps.ver.outputs.code }}
+        run: |
+          PREV="$(git describe --tags --abbrev=0 "${GITHUB_REF_NAME}^" 2>/dev/null || true)"
+          {
+            echo "## 家庭作业 ${VERSION_NAME} (${VERSION_CODE})"
+            echo
+            echo "### 安装"
+            echo
+            echo "1. 下载下方 \`homework-${VERSION_NAME}.apk\`（sha256 见 \`SHA256SUMS.txt\`）"
+            echo "2. 手机上允许「安装未知应用」，点开装即可覆盖旧版"
+            echo "3. 与旧版签名一致，**无需卸载**，本地数据保留"
+            echo
+            echo "> 若安装时提示「签名不一致」，说明旧版是用 debug 签名装的，"
+            echo "> 需先卸载再安装。卸载会清空本地 SQLite，装回来等云端同步恢复。"
+            echo
+            if [ -n "$PREV" ] && [ "$PREV" != "$GITHUB_REF_NAME" ]; then
+              echo "### 变更"
+              echo
+              echo '```'
+              git log --no-merges --pretty='- %s' "${PREV}..${GITHUB_REF_NAME}"
+              echo '```'
+              echo
+            fi
+          } > release-notes.md
+          cat release-notes.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-${{ steps.ver.outputs.name }}
+          path: dist/
+          retention-days: 14
+
+      - name: 发布 Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: v${{ steps.ver.outputs.name }}
+          body_path: release-notes.md
+          files: |
+            dist/homework-${{ steps.ver.outputs.name }}.apk
+            dist/SHA256SUMS.txt
+          fail_on_unmatched_files: true
